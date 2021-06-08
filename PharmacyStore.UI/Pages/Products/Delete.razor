@@ -1,0 +1,108 @@
+﻿@page "/products/delete/{Id:int}"
+
+@inject IProductService service
+@inject NavigationManager navigationManager
+@inject IFileUpload fileUpload
+@inject IToastService toastService
+
+@attribute [Authorize(Roles = StaticDetails.Role_Admin)]
+
+<div class="container">
+
+    @if (isFailed)
+    {
+        <div class="alert alert-danger text-center">
+            <h3>
+                Something is wrong. Please call the administrator.
+            </h3>
+        </div>
+    }
+
+    <div class="card text-center">
+        <div class="card-header">
+            Delete
+        </div>
+        <div class="card-body">
+            @if (Model != null)
+            {
+                <h5 class="card-title">
+                    @Model.Name
+                </h5>
+
+                <EditForm Model="Model" OnValidSubmit="DeleteModel">
+
+                    <div class="form-group">
+                        <label>
+                            Product
+                        </label>
+                        <InputText @bind-Value="@Model.Name" class="form-control" disabled />
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Price
+                        </label>
+                        <InputNumber @bind-Value="@Model.Price" class="form-control" disabled />
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            Description
+                        </label>
+                        <InputTextArea @bind-Value="@Model.Summary" rows="5" class="form-control" disabled />
+                    </div>
+
+                    <div class="form-control border-0">
+                        <a class="btn btn-outline-primary" href="/products/details/@Model.Id">
+                            <span class="oi oi-arrow-left"></span>
+                            Back
+                        </a>
+                        <button class="btn btn-outline-danger" type="submit">
+                            <span class="oi oi-delete"></span>
+                            Confirm
+                        </button>
+                    </div>
+
+                </EditForm>
+            }
+            else
+            {
+                <h1 class="text-center mt-5">
+                    Loading...
+                </h1>
+            }
+        </div>
+    </div>
+
+
+
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    public ProductViewModel Model = new ProductViewModel();
+
+    private bool isFailed = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model = await service.GetByIdAsync(EndpointsService.ProductEndpoint, Id);
+    }
+
+    private async Task DeleteModel()
+    {
+        fileUpload.RemoveFile(Model.Image);
+
+        bool isSuccess = await service.DeleteAsync(EndpointsService.ProductEndpoint, Model.Id);
+
+        if (isSuccess)
+        {
+            toastService.ShowSuccess($"{Model.Name} removed successfuly!");
+            navigationManager.NavigateTo($"/products");
+        }
+        else
+        {
+            isFailed = true;
+        }
+    }
+}

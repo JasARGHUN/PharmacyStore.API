@@ -1,0 +1,90 @@
+﻿@page "/companies"
+
+@inject ICompanyService companyService
+@inject NavigationManager navigationManager
+
+@attribute [Authorize(Roles = StaticDetails.Role_Admin)]
+
+<div class="container">
+
+    <div class="card mt-2 p-2">
+
+        <AuthorizeView Roles="@StaticDetails.Role_Admin">
+            <div class="float-right mt-2 mb-2">
+                <a class="btn btn-outline-primary" href="company/create">
+                    <span class="oi oi-list-rich" aria-hidden="true"></span> Create Company
+                </a>
+            </div>
+        </AuthorizeView>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        Company ID
+                    </th>
+                    <th>
+                        Name
+                    </th>
+                    <th>
+                        Country
+                    </th>
+                    <th>
+                        Products count
+                    </th>
+                    <th>
+
+                    </th>
+                </tr>
+            </thead>
+            @if (Models != null)
+            {
+                <tbody>
+                    @foreach (var item in Models)
+                    {
+                        <tr>
+                            <td>
+                                @item.Id
+                            </td>
+                            <td>
+                                @item.Name
+                            </td>
+                            <td>
+                                @item.Country
+                            </td>
+                            <td>
+                                @item.Products.Count()
+                            </td>
+                            <td>
+                                <a class="btn btn-outline-primary" href="/companies/details/@item.Id">
+                                    <span class="oi oi-list"></span>
+                                    Details
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            }
+            else
+            {
+                <tbody>
+                    <tr>
+                        <td>
+                            No data.
+                        </td>
+                    </tr>
+                </tbody>
+            }
+        </table>
+    </div>
+
+</div>
+
+@code {
+    public IList<CompanyViewModel> Models;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Models = await companyService.GetAllAsync(EndpointsService.CompanyEndpoint);
+    }
+}

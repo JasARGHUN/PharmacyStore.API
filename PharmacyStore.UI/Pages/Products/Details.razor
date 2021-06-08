@@ -1,0 +1,86 @@
+﻿@page "/products/details/{Id:int}"
+
+@inject IProductService service
+@inject NavigationManager navigationManager
+@inject IToastService toastService
+
+@attribute [Authorize(Roles = StaticDetails.Role_Admin)]
+
+<div class="container">
+    <div class="card text-center">
+        <div class="card-header">
+            Details
+        </div>
+        <div class="card-body">
+            @if (Model != null)
+            {
+                <img src="images/@Model.Image" class="card-img-top mb-1 mt-1" alt="product image">
+                <h5 class="card-title">
+                    @Model.Name
+                </h5>
+                <p class="card-text">
+                    @Model.Price
+                </p>
+                <p class="card-text">
+                    @Model.Summary
+                </p>
+                @if (Model.Company != null)
+                {
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <a href="/companies/details/@Model.Id">
+                                @Model.Company.Name / @Model.Company.Country
+                            </a>
+                        </li>
+                    </ul>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <p>
+                                No company recorded
+                            </p>
+                        </li>
+                    </ul>
+                }
+
+                <AuthorizeView Roles="@StaticDetails.Role_Admin">
+                    <div class="mt-2">
+                        <a class="btn btn-outline-primary" href="/products">
+                            <span class="oi oi-arrow-left"></span>
+                            Back
+                        </a>
+                        <a href="/products/edit/@Model.Id" class="btn btn-outline-warning">
+                            <span class="oi oi-pencil"></span>
+                            Edit
+                        </a>
+                        <a href="/products/delete/@Model.Id" class="btn btn-outline-danger">
+                            <span class="oi oi-delete"></span>
+                            Delete
+                        </a>
+                    </div>
+                </AuthorizeView>
+
+            }
+            else
+            {
+                <h1 class="text-center mt-5">
+                    Loading...
+                </h1>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private ProductViewModel Model = new ProductViewModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model = await service.GetByIdAsync(EndpointsService.ProductEndpoint, Id);
+    }
+}

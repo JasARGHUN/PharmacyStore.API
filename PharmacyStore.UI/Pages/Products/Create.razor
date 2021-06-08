@@ -1,0 +1,187 @@
+﻿@page "/product/create"
+
+@inject IProductService service
+@inject ICompanyService companyService
+@inject NavigationManager navigationManager
+@inject IFileUpload _fileUpload
+@inject IToastService toastService
+
+@attribute [Authorize(Roles = StaticDetails.Role_Admin)]
+
+<div class="container">
+
+    @if (!isSuccess)
+    {
+        <div class="alert alert-danger text-center">
+            <h3>
+                Something is wrong. Please call the administrator.
+            </h3>
+        </div>
+    }
+
+    <div class="card text-center">
+        <div class="card-header">
+            Add Company
+        </div>
+        <div class="card-body">
+            <EditForm Model="Model" OnValidSubmit="CreateModel">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="form-group">
+                    <label>
+                        Product name
+                    </label>
+                    <InputText @bind-Value="@Model.Name" class="form-control" />
+                    <ValidationMessage For="()=>Model.Name"></ValidationMessage>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Price
+                    </label>
+                    <InputNumber @bind-Value="@Model.Price" class="form-control" />
+                    <ValidationMessage For="()=>Model.Price"></ValidationMessage>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Company
+                    </label>
+                    <select @bind="@Model.CompanyId" class="form-control" id="company">
+                        <option value="">--Select Company--</option>
+                        @if (CompanyVM != null)
+                        {
+                            foreach (var item in CompanyVM)
+                            {
+                                <option value="@item.Id">@item.Name</option>
+                            }
+                        }
+                    </select>
+                    <ValidationMessage For="()=>Model.CompanyId"></ValidationMessage>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Description
+                    </label>
+                    <InputTextArea @bind-Value="@Model.Summary" rows="5" class="form-control" />
+                    <ValidationMessage For="()=>Model.Summary"></ValidationMessage>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Product Image
+                    </label>
+                    <InputFile OnChange="HandleFileSelection" />
+                    @if (isInvalidFileType)
+                    {
+                        <p>
+                            Please remove the invalid file type and select as new image, or leave this field blank
+                        </p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(imageDataURL))
+                    {
+                        <img src="@imageDataURL" style="height:100px;width:100px" />
+                    }
+                </div>
+
+                <div class="form-control border-0">
+                    <a class="btn btn-outline-primary" href="products">
+                        <span class="oi oi-arrow-left"></span>
+                        Back
+                    </a>
+
+                    <button class="btn btn-outline-success" type="submit">
+                        <span class="oi oi-plus"></span>
+                        Add
+                    </button>
+
+                </div>
+
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    public ProductViewModel Model = new ProductViewModel();
+    public IList<CompanyViewModel> CompanyVM;
+
+    private IBrowserFile file;
+    private bool isSuccess = true;
+    private bool isInvalidFileType = false;
+    private string imageDataURL;
+    private Stream msFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        CompanyVM = await companyService.GetAllAsync(EndpointsService.CompanyEndpoint);
+    }
+
+    private async Task CreateModel()
+    {
+        if (!isInvalidFileType)
+        {
+            if (file != null)
+            {
+                var ext = Path.GetExtension(file.Name);
+
+                var pictureId = Guid.NewGuid().ToString().Replace("-", "");
+
+                var pictureName = $"{pictureId}{ext}";
+
+                await _fileUpload.UploadFile(msFile, pictureName);
+
+                Model.Image = pictureName;
+            }
+
+            isSuccess = await service.CreateAsync(EndpointsService.ProductEndpoint, Model);
+
+            if (isSuccess)
+            {
+                toastService.ShowSuccess($"{Model.Name} added successfuly!");
+                navigationManager.NavigateTo($"/products");
+            }
+        }
+    }
+
+    private async Task HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        file = e.File;
+
+        if (file != null)
+        {
+            var ext = Path.GetExtension(file.Name);
+
+            if (ext.Contains("jpg") || ext.Contains("png") || ext.Contains("jpeg"))
+            {
+                msFile = file.OpenReadStream();
+
+                var resizedImageFile = await file.RequestImageFileAsync("image/png",
+            100, 100);
+
+                var buffer = new byte[resizedImageFile.Size];
+
+                await resizedImageFile.OpenReadStream().ReadAsync(buffer);
+
+                var imageBase64Data = Convert.ToBase64String(buffer);
+
+                imageDataURL = string.Format("data:image/png;base64,{0}", imageBase64Data);
+
+                isInvalidFileType = false;
+            }
+            else
+            {
+                isInvalidFileType = true;
+
+                imageDataURL = string.Empty;
+            }
+        }
+        else
+        {
+            isInvalidFileType = false;
+        }
+    }
+}
